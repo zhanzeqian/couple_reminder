@@ -34,6 +34,11 @@ textarea {
   font: inherit;
 }
 
+button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
 .app-shell {
   width: min(760px, 100%);
   margin: 0 auto;
@@ -58,6 +63,14 @@ textarea {
   background: rgba(255, 255, 255, 0.96);
   box-shadow: var(--shadow);
   padding: 12px 14px;
+}
+
+.toast.success {
+  border-color: rgba(31, 122, 111, 0.32);
+}
+
+.toast.error {
+  border-color: rgba(176, 71, 89, 0.36);
 }
 
 .toast strong {

@@ -39,6 +39,32 @@ async function api(path, options = {}) {
   return data;
 }
 
+async function withAction(button, pendingText, action) {
+  const originalText = button?.textContent;
+  const originalHtml = button?.innerHTML;
+  if (button) {
+    button.disabled = true;
+    button.textContent = pendingText;
+  }
+
+  try {
+    const result = await action();
+    return result;
+  } catch (error) {
+    showToast("操作失败", error.message || "请稍后再试。", "error");
+    throw error;
+  } finally {
+    if (button) {
+      button.disabled = false;
+      if (button.classList.contains("icon-button")) {
+        button.innerHTML = originalHtml;
+      } else {
+        button.textContent = originalText;
+      }
+    }
+  }
+}
+
 async function bootstrap() {
   appState = await api(`/api/bootstrap?deviceId=${encodeURIComponent(deviceId)}`);
   people.me.value = appState.user?.name || "";
@@ -141,8 +167,8 @@ function renderTasks() {
     if (task.status === "done") {
       actions.remove();
     } else {
-      card.querySelector(".complete-button").addEventListener("click", () => completeTask(task.id));
-      card.querySelector(".delay-button").addEventListener("click", () => delayTask(task.id));
+      card.querySelector(".complete-button").addEventListener("click", (event) => completeTask(task.id, event.currentTarget));
+      card.querySelector(".delay-button").addEventListener("click", (event) => delayTask(task.id, event.currentTarget));
     }
 
     list.append(card);
@@ -150,66 +176,73 @@ function renderTasks() {
 }
 
 async function savePeople() {
-  const name = people.me.value.trim();
-  if (!name) {
-    alert("先填你的名字。");
-    return;
-  }
+  return withAction($("#savePeopleButton"), "保存中", async () => {
+    const name = people.me.value.trim();
+    if (!name) throw new Error("先填你的名字。");
 
-  await api("/api/profile", {
-    method: "POST",
-    body: JSON.stringify({ deviceId, name })
+    await api("/api/profile", {
+      method: "POST",
+      body: JSON.stringify({ deviceId, name })
+    });
+    await bootstrap();
+    showToast("已保存", "你的名字已更新。", "success");
   });
-  await bootstrap();
 }
 
 async function createInvite() {
-  await savePeople();
-  const data = await api("/api/invites", {
-    method: "POST",
-    body: JSON.stringify({ deviceId })
+  return withAction($("#createInviteButton"), "生成中", async () => {
+    await savePeople();
+    const data = await api("/api/invites", {
+      method: "POST",
+      body: JSON.stringify({ deviceId })
+    });
+    $("#inviteCode").value = data.code;
+    showToast("邀请码已生成", "把这个邀请码发给对方绑定。", "success");
   });
-  $("#inviteCode").value = data.code;
 }
 
 async function joinInvite() {
-  const name = people.me.value.trim();
-  const code = $("#joinCode").value.trim();
-  if (!name || !code) {
-    alert("请填你的名字和对方的邀请码。");
-    return;
-  }
+  return withAction($("#joinInviteButton"), "绑定中", async () => {
+    const name = people.me.value.trim();
+    const code = $("#joinCode").value.trim();
+    if (!name || !code) throw new Error("请填你的名字和对方的邀请码。");
 
-  await api("/api/couples/join", {
-    method: "POST",
-    body: JSON.stringify({ deviceId, name, code })
+    await api("/api/couples/join", {
+      method: "POST",
+      body: JSON.stringify({ deviceId, name, code })
+    });
+    await bootstrap();
+    showToast("绑定成功", `已和 ${appState.partner?.name || "TA"} 绑定。`, "success");
   });
-  await bootstrap();
 }
 
 async function createTask(event) {
   event.preventDefault();
-  if (!appState.couple) {
-    alert("请先绑定对方。");
-    return;
-  }
+  const button = event.submitter;
+  return withAction(button, "创建中", async () => {
+    if (!appState.couple) throw new Error("请先绑定对方。");
 
-  await api("/api/tasks", {
-    method: "POST",
-    body: JSON.stringify({
-      deviceId,
-      title: $("#titleInput").value.trim(),
-      note: $("#noteInput").value.trim(),
-      dueAt: new Date($("#dueInput").value).toISOString(),
-      assignee: $("#assigneeInput").value,
-      intervalMinutes: Number($("#intervalInput").value),
-      priority: $("#priorityInput").value
-    })
+    const title = $("#titleInput").value.trim();
+    if (!title) throw new Error("事项不能为空。");
+
+    await api("/api/tasks", {
+      method: "POST",
+      body: JSON.stringify({
+        deviceId,
+        title,
+        note: $("#noteInput").value.trim(),
+        dueAt: new Date($("#dueInput").value).toISOString(),
+        assignee: $("#assigneeInput").value,
+        intervalMinutes: Number($("#intervalInput").value),
+        priority: $("#priorityInput").value
+      })
+    });
+
+    event.target.reset();
+    await refreshTasks();
+    setupDefaults();
+    showToast("创建成功", `已创建提醒：${title}`, "success");
   });
-
-  event.target.reset();
-  await refreshTasks();
-  setupDefaults();
 }
 
 async function refreshTasks() {
@@ -219,34 +252,42 @@ async function refreshTasks() {
   renderTasks();
 }
 
-async function completeTask(id) {
-  await api(`/api/tasks/${id}`, {
-    method: "PATCH",
-    body: JSON.stringify({ deviceId, action: "complete" })
+async function completeTask(id, button) {
+  return withAction(button, "完成中", async () => {
+    const task = appState.tasks.find((item) => item.id === id);
+    await api(`/api/tasks/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ deviceId, action: "complete" })
+    });
+    await refreshTasks();
+    showToast("已完成", task ? `已标记完成：${task.title}` : "任务已完成。", "success");
   });
-  await refreshTasks();
 }
 
-async function delayTask(id) {
-  await api(`/api/tasks/${id}`, {
-    method: "PATCH",
-    body: JSON.stringify({ deviceId, action: "delay", minutes: 60 })
+async function delayTask(id, button) {
+  return withAction(button, "延期中", async () => {
+    const task = appState.tasks.find((item) => item.id === id);
+    await api(`/api/tasks/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ deviceId, action: "delay", minutes: 60 })
+    });
+    await refreshTasks();
+    showToast("已延期", task ? `${task.title} 已延期 1 小时。` : "任务已延期。", "success");
   });
-  await refreshTasks();
 }
 
 async function requestNotifications() {
-  if (!("Notification" in window)) {
-    alert("这个浏览器暂不支持通知。");
-    return;
-  }
+  return withAction($("#notifyButton"), "...", async () => {
+    if (!("Notification" in window)) throw new Error("这个浏览器暂不支持通知。");
 
-  const permission = await Notification.requestPermission();
-  if (permission === "granted") {
-    showLocalNotification("通知已开启", "提醒事件会先通过轮询送达。");
+    const permission = await Notification.requestPermission();
+    if (permission !== "granted") throw new Error("通知权限没有开启。");
+
     await registerPushSubscription();
-  }
-  updateNotifyButton();
+    showToast("通知已开启", "之后会尝试通过系统推送提醒你。", "success");
+    showLocalNotification("通知已开启", "之后会尝试通过系统推送提醒你。");
+    updateNotifyButton();
+  });
 }
 
 async function registerPushSubscription() {
@@ -304,10 +345,10 @@ function showLocalNotification(title, body) {
   });
 }
 
-function showToast(title, body) {
+function showToast(title, body, tone = "info") {
   const zone = $("#toastZone");
   const toast = document.createElement("div");
-  toast.className = "toast";
+  toast.className = `toast ${tone}`;
   toast.innerHTML = `<strong></strong><span></span>`;
   toast.querySelector("strong").textContent = title;
   toast.querySelector("span").textContent = body;
