@@ -142,6 +142,8 @@ h2 {
 }
 
 .setup-panel,
+.settings-panel,
+.fine-summary,
 .quick-create,
 .task-card {
   border: 1px solid var(--line);
@@ -151,6 +153,13 @@ h2 {
 }
 
 .setup-panel {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 18px;
+  padding: 18px;
+}
+
+.settings-panel {
   display: grid;
   gap: 14px;
   margin-bottom: 18px;
@@ -182,6 +191,35 @@ h2 {
 
 .quick-create {
   padding: 18px;
+}
+
+.fine-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 12px;
+  padding: 14px 16px;
+}
+
+.fine-summary h2 {
+  margin-bottom: 4px;
+}
+
+.fine-summary p {
+  margin-bottom: 0;
+  color: var(--accent);
+  font-weight: 900;
+}
+
+.fine-summary span {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: rgba(176, 71, 89, 0.12);
+  color: var(--accent);
+  padding: 6px 9px;
+  font-size: 0.82rem;
+  font-weight: 900;
 }
 
 .section-title {

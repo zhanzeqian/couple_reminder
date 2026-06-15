@@ -31,6 +31,7 @@ create table if not exists tasks (
   note text not null default '',
   due_at timestamptz not null,
   interval_minutes integer not null default 0,
+  penalty_amount numeric(10, 2) not null default 0,
   priority text not null default 'normal',
   status text not null default 'pending',
   remind_count integer not null default 0,
@@ -41,6 +42,8 @@ create table if not exists tasks (
 
 create index if not exists tasks_due_idx on tasks (status, due_at, last_reminded_at);
 create index if not exists tasks_couple_idx on tasks (couple_id);
+
+alter table tasks add column if not exists penalty_amount numeric(10, 2) not null default 0;
 
 create table if not exists events (
   id text primary key,

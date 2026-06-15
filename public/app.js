@@ -13,7 +13,9 @@ let currentView = "mine";
 
 const people = {
   me: $("#meInput"),
-  partner: $("#partnerInput")
+  partner: $("#partnerInput"),
+  settingsMe: $("#settingsMeInput"),
+  settingsPartner: $("#settingsPartnerInput")
 };
 
 function getDeviceId() {
@@ -92,8 +94,12 @@ async function bootstrap() {
   appState = await api(`/api/bootstrap?deviceId=${encodeURIComponent(deviceId)}`);
   people.me.value = appState.user?.name || "";
   people.partner.value = appState.partner?.name || "";
+  people.settingsMe.value = appState.user?.name || "";
+  people.settingsPartner.value = appState.partner?.name || "";
   setupDefaults();
   renderPairing();
+  renderSettings();
+  renderFineSummary();
   renderTasks();
 }
 
@@ -147,6 +153,15 @@ function renderPairing() {
   inviteTools.classList.remove("hidden");
 }
 
+function renderSettings() {
+  const panel = $("#settingsPanel");
+  const status = $("#settingsPairStatus");
+  panel.classList.toggle("hidden", !appState.couple);
+  status.textContent = appState.couple ? `已绑定 ${appState.partner?.name || "TA"}` : "";
+  people.settingsMe.value = appState.user?.name || "";
+  people.settingsPartner.value = appState.partner?.name || "";
+}
+
 function renderTasks() {
   const list = $("#taskList");
   const template = $("#taskTemplate");
@@ -183,11 +198,12 @@ function renderTasks() {
     card.querySelector(".task-meta").innerHTML = [
       `截止 ${formatDateTime(task.dueAt)}`,
       task.intervalMinutes ? `${task.intervalMinutes >= 1440 ? "每天" : `每 ${task.intervalMinutes} 分钟`}提醒` : "只提醒一次",
+      task.penaltyAmount ? `未完成罚款 ¥${formatMoney(task.penaltyAmount)}` : "无罚款",
       `已提醒 ${task.remindCount || 0} 次`
     ].map((text) => `<span>${text}</span>`).join("");
 
     const actions = card.querySelector(".task-actions");
-    if (task.status === "done") {
+    if (task.status === "done" || task.assigneeRole !== "me") {
       actions.remove();
     } else {
       card.querySelector(".complete-button").addEventListener("click", (event) => completeTask(task.id, event.currentTarget));
@@ -198,9 +214,61 @@ function renderTasks() {
   }
 }
 
+function renderFineSummary() {
+  const summary = $("#fineSummary");
+  const overdueTasks = appState.tasks.filter((task) =>
+    task.status !== "done" &&
+    Date.now() > new Date(task.dueAt).getTime() &&
+    Number(task.penaltyAmount || 0) > 0
+  );
+
+  if (!overdueTasks.length) {
+    summary.classList.add("hidden");
+    summary.innerHTML = "";
+    return;
+  }
+
+  const totals = overdueTasks.reduce((acc, task) => {
+    const name = getAssigneeName(task);
+    acc[name] = (acc[name] || 0) + Number(task.penaltyAmount || 0);
+    return acc;
+  }, {});
+
+  summary.classList.remove("hidden");
+  summary.innerHTML = `
+    <div>
+      <h2>未完成罚款</h2>
+      <p>${Object.entries(totals).map(([name, amount]) => `${escapeHtml(name)} ¥${formatMoney(amount)}`).join(" · ")}</p>
+    </div>
+    <span>${overdueTasks.length} 项逾期</span>
+  `;
+}
+
+function formatMoney(value) {
+  return Number(value || 0).toFixed(2).replace(/\.00$/, "");
+}
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    "\"": "&quot;",
+    "'": "&#039;"
+  })[char]);
+}
+
 async function savePeople() {
-  return withAction($("#savePeopleButton"), "保存中", async () => {
-    const name = people.me.value.trim();
+  return saveProfileName(people.me.value, $("#savePeopleButton"));
+}
+
+async function saveSettingsPeople() {
+  return saveProfileName(people.settingsMe.value, $("#settingsSavePeopleButton"));
+}
+
+async function saveProfileName(rawName, button) {
+  return withAction(button, "保存中", async () => {
+    const name = rawName.trim();
     if (!name) throw new Error("先填你的名字。");
 
     await api("/api/profile", {
@@ -257,6 +325,7 @@ async function createTask(event) {
         dueAt: new Date($("#dueInput").value).toISOString(),
         assignee: $("#assigneeInput").value,
         intervalMinutes: Number($("#intervalInput").value),
+        penaltyAmount: Number($("#penaltyInput").value || 0),
         priority: $("#priorityInput").value
       })
     });
@@ -272,6 +341,7 @@ async function refreshTasks() {
   if (!appState.user) return;
   const data = await api(`/api/tasks?deviceId=${encodeURIComponent(deviceId)}`);
   appState.tasks = data.tasks;
+  renderFineSummary();
   renderTasks();
 }
 
@@ -402,6 +472,7 @@ async function registerPwa() {
 }
 
 $("#savePeopleButton").addEventListener("click", savePeople);
+$("#settingsSavePeopleButton").addEventListener("click", saveSettingsPeople);
 $("#createInviteButton").addEventListener("click", createInvite);
 $("#joinInviteButton").addEventListener("click", joinInvite);
 $("#taskForm").addEventListener("submit", createTask);
