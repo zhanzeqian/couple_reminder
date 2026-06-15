@@ -33,11 +33,24 @@ self.addEventListener("fetch", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
+  const targetUrl = event.notification.data?.url || "/";
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
       const visible = clients.find((client) => "focus" in client);
       if (visible) return visible.focus();
-      return self.clients.openWindow("/");
+      return self.clients.openWindow(targetUrl);
+    })
+  );
+});
+
+self.addEventListener("push", (event) => {
+  const payload = event.data?.json() || {};
+  event.waitUntil(
+    self.registration.showNotification(payload.title || "新的提醒", {
+      body: payload.body || "有一条新的待办更新。",
+      icon: "/icons/icon.svg",
+      badge: "/icons/icon.svg",
+      data: { url: payload.url || "/" }
     })
   );
 });

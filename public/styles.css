@@ -40,6 +40,35 @@ textarea {
   padding: max(22px, env(safe-area-inset-top)) 18px max(26px, env(safe-area-inset-bottom));
 }
 
+.toast-zone {
+  position: fixed;
+  z-index: 20;
+  top: max(14px, env(safe-area-inset-top));
+  left: 50%;
+  display: grid;
+  width: min(520px, calc(100% - 28px));
+  gap: 8px;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.toast {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: var(--shadow);
+  padding: 12px 14px;
+}
+
+.toast strong {
+  display: block;
+  margin-bottom: 3px;
+}
+
+.toast span {
+  color: var(--muted);
+}
+
 .topbar {
   display: flex;
   align-items: center;

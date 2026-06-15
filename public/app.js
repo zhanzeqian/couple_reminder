@@ -251,14 +251,37 @@ async function requestNotifications() {
 
 async function registerPushSubscription() {
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+  const config = await api("/api/push-config");
+  if (!config.publicKey) {
+    alert("服务器还没有配置 Web Push 公钥。");
+    return;
+  }
+
   const registration = await navigator.serviceWorker.ready;
-  const subscription = await registration.pushManager.getSubscription();
-  if (!subscription) return;
+  let subscription = await registration.pushManager.getSubscription();
+  if (!subscription) {
+    subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(config.publicKey)
+    });
+  }
 
   await api("/api/push-subscriptions", {
     method: "POST",
     body: JSON.stringify({ deviceId, subscription })
   });
+}
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+
+  for (let i = 0; i < rawData.length; i += 1) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
 }
 
 function updateNotifyButton() {
@@ -281,11 +304,23 @@ function showLocalNotification(title, body) {
   });
 }
 
+function showToast(title, body) {
+  const zone = $("#toastZone");
+  const toast = document.createElement("div");
+  toast.className = "toast";
+  toast.innerHTML = `<strong></strong><span></span>`;
+  toast.querySelector("strong").textContent = title;
+  toast.querySelector("span").textContent = body;
+  zone.append(toast);
+  setTimeout(() => toast.remove(), 6000);
+}
+
 async function pollEvents() {
   if (!appState.user) return;
   try {
     const data = await api(`/api/events?deviceId=${encodeURIComponent(deviceId)}`);
     for (const event of data.events) {
+      showToast(event.title, event.body);
       showLocalNotification(event.title, event.body);
     }
     if (data.events.length) await refreshTasks();

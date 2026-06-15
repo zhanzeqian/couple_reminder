@@ -133,6 +133,8 @@ WEB_PUSH_PRIVATE_KEY=...
 WEB_PUSH_SUBJECT=mailto:your-email@example.com
 ```
 
+当前版本已经支持 Web Push。配置完这三个变量后，用户需要重新打开 PWA，点右上角通知按钮，浏览器会创建 PushSubscription 并保存到数据库。
+
 ### 3. 导入 GitHub 仓库
 
 1. 把项目推到 GitHub。
