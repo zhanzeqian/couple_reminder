@@ -1,4 +1,5 @@
 const deviceKey = "couple-reminder-device-id-v1";
+const seenEventsKey = "couple-reminder-seen-events-v1";
 const $ = (selector) => document.querySelector(selector);
 const now = () => new Date();
 
@@ -25,6 +26,28 @@ function getDeviceId() {
 }
 
 const deviceId = getDeviceId();
+
+function hasSeenEvent(eventId) {
+  if (!eventId) return false;
+  try {
+    const seen = JSON.parse(localStorage.getItem(seenEventsKey) || "[]");
+    return seen.includes(eventId);
+  } catch {
+    return false;
+  }
+}
+
+function markEventSeen(eventId) {
+  if (!eventId) return;
+  let seen = [];
+  try {
+    seen = JSON.parse(localStorage.getItem(seenEventsKey) || "[]");
+  } catch {
+    seen = [];
+  }
+  const next = [eventId, ...seen.filter((id) => id !== eventId)].slice(0, 80);
+  localStorage.setItem(seenEventsKey, JSON.stringify(next));
+}
 
 async function api(path, options = {}) {
   const response = await fetch(path, {
@@ -361,6 +384,8 @@ async function pollEvents() {
   try {
     const data = await api(`/api/events?deviceId=${encodeURIComponent(deviceId)}`);
     for (const event of data.events) {
+      if (hasSeenEvent(event.id)) continue;
+      markEventSeen(event.id);
       showToast(event.title, event.body);
       showLocalNotification(event.title, event.body);
     }

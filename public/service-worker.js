@@ -1,4 +1,5 @@
 const CACHE_NAME = "couple-reminder-v1";
+const SEEN_PUSH_CACHE = "couple-reminder-seen-push-v1";
 const APP_SHELL = [
   "/",
   "/index.html",
@@ -46,11 +47,24 @@ self.addEventListener("notificationclick", (event) => {
 self.addEventListener("push", (event) => {
   const payload = event.data?.json() || {};
   event.waitUntil(
-    self.registration.showNotification(payload.title || "新的提醒", {
-      body: payload.body || "有一条新的待办更新。",
-      icon: "/icons/icon.svg",
-      badge: "/icons/icon.svg",
-      data: { url: payload.url || "/" }
+    shouldShowPush(payload.eventId).then((shouldShow) => {
+      if (!shouldShow) return;
+      return self.registration.showNotification(payload.title || "新的提醒", {
+        body: payload.body || "有一条新的待办更新。",
+        icon: "/icons/icon.svg",
+        badge: "/icons/icon.svg",
+        data: { url: payload.url || "/", eventId: payload.eventId }
+      });
     })
   );
 });
+
+async function shouldShowPush(eventId) {
+  if (!eventId) return true;
+  const cache = await caches.open(SEEN_PUSH_CACHE);
+  const key = `/seen/${eventId}`;
+  const existing = await cache.match(key);
+  if (existing) return false;
+  await cache.put(key, new Response("1"));
+  return true;
+}
