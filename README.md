@@ -86,7 +86,6 @@ Vercel 不能依赖本地 `data/db.json` 和常驻 `setInterval`。部署到 Ver
 
 ```text
 Vercel Functions -> /api/*
-Vercel Cron -> /api/cron/reminders
 Postgres -> DATABASE_URL
 ```
 
@@ -158,18 +157,11 @@ npm run db:check
 
 Vercel 的自动部署不会默认执行建表脚本，所以第一次上线前必须做一次建表。
 
-### 4. Cron
+### 4. 提醒扫描
 
-[vercel.json](./vercel.json) 已配置：
+Vercel Hobby 账号的 Cron Jobs 只适合每日任务，不能使用 `*/5 * * * *` 这类高频 Cron。当前版本不启用 Vercel Cron，而是在 PWA 轮询 `/api/events` 时顺手扫描到期任务并生成提醒事件。
 
-```json
-{
-  "path": "/api/cron/reminders",
-  "schedule": "*/5 * * * *"
-}
-```
-
-这表示 Vercel 每 5 分钟扫描一次到期任务。Vercel Cron 的最小频率和可用性取决于账号套餐；如果你需要 30 秒级提醒，Vercel 不适合单独承担调度，需要换成外部 Worker 或队列。
+这意味着：应用打开时提醒会正常刷新；如果要在 iPhone 锁屏后也稳定收到提醒，需要继续接 Web Push，并使用外部调度器或升级 Vercel 计划。
 
 ### 5. iPhone 使用
 
