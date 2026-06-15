@@ -1,0 +1,18 @@
+{
+  "name": "Couple Reminder",
+  "short_name": "Reminder",
+  "description": "A private two-person reminder app for shared unfinished things.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fffaf4",
+  "theme_color": "#1f7a6f",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

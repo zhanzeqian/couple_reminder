@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#1f7a6f">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Reminder">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="icon" href="/icons/icon.svg">
+    <link rel="stylesheet" href="/styles.css">
+    <title>Couple Reminder</title>
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Couple Reminder</p>
+          <h1>两个人的未完成事项</h1>
+        </div>
+        <button class="icon-button" id="notifyButton" type="button" aria-label="开启通知" title="开启通知">
+          <span>!</span>
+        </button>
+      </header>
+
+      <section class="setup-panel" id="setupPanel">
+        <div>
+          <h2>设置你们俩</h2>
+          <p id="pairStatus">还没有绑定对方</p>
+        </div>
+        <div class="name-grid">
+          <label>
+            我
+            <input id="meInput" autocomplete="name" placeholder="比如：阿北">
+          </label>
+          <label>
+            TA
+            <input id="partnerInput" autocomplete="off" placeholder="比如：小鱼">
+          </label>
+        </div>
+        <button class="primary-button" id="savePeopleButton" type="button">保存</button>
+        <div class="invite-tools" id="inviteTools">
+          <div class="invite-box">
+            <button class="secondary-button" id="createInviteButton" type="button">生成邀请码</button>
+            <input id="inviteCode" readonly placeholder="生成后给对方">
+          </div>
+          <div class="invite-box">
+            <input id="joinCode" inputmode="text" autocomplete="one-time-code" placeholder="输入对方邀请码">
+            <button class="secondary-button" id="joinInviteButton" type="button">绑定</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="quick-create">
+        <div class="section-title">
+          <h2>新建提醒</h2>
+          <span id="todayText"></span>
+        </div>
+        <form id="taskForm">
+          <label>
+            事项
+            <input id="titleInput" required maxlength="48" placeholder="下班买牛奶">
+          </label>
+          <div class="form-row">
+            <label>
+              谁来做
+              <select id="assigneeInput">
+                <option value="partner">TA</option>
+                <option value="me">我</option>
+              </select>
+            </label>
+            <label>
+              截止时间
+              <input id="dueInput" type="datetime-local" required>
+            </label>
+          </div>
+          <div class="form-row">
+            <label>
+              提醒频率
+              <select id="intervalInput">
+                <option value="0">只提醒一次</option>
+                <option value="30">每 30 分钟</option>
+                <option value="60">每小时</option>
+                <option value="120">每 2 小时</option>
+                <option value="1440">每天</option>
+              </select>
+            </label>
+            <label>
+              重要程度
+              <select id="priorityInput">
+                <option value="normal">普通</option>
+                <option value="important">重要</option>
+              </select>
+            </label>
+          </div>
+          <label>
+            备注
+            <textarea id="noteInput" rows="2" maxlength="140" placeholder="可选"></textarea>
+          </label>
+          <button class="primary-button" type="submit">创建提醒</button>
+        </form>
+      </section>
+
+      <nav class="tabs" aria-label="任务视图">
+        <button class="tab active" data-view="mine" type="button">我的</button>
+        <button class="tab" data-view="sent" type="button">给 TA 的</button>
+        <button class="tab" data-view="done" type="button">已完成</button>
+      </nav>
+
+      <section class="task-list" id="taskList" aria-live="polite"></section>
+    </main>
+
+    <template id="taskTemplate">
+      <article class="task-card">
+        <div class="task-main">
+          <div>
+            <p class="task-kicker"></p>
+            <h3></h3>
+          </div>
+          <span class="badge"></span>
+        </div>
+        <p class="task-note"></p>
+        <div class="task-meta"></div>
+        <div class="task-actions">
+          <button class="complete-button" type="button">完成</button>
+          <button class="delay-button" type="button">延期 1 小时</button>
+        </div>
+      </article>
+    </template>
+
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>
