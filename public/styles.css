@@ -82,6 +82,57 @@ button:disabled {
   color: var(--muted);
 }
 
+.page-loader {
+  position: fixed;
+  z-index: 15;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  gap: 14px;
+  background:
+    linear-gradient(180deg, rgba(31, 122, 111, 0.1), transparent 280px),
+    rgba(255, 250, 244, 0.94);
+  color: var(--text);
+  text-align: center;
+  transition: opacity 180ms ease, visibility 180ms ease;
+}
+
+.page-loader.hidden {
+  display: grid;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.page-loader > div:last-child {
+  display: grid;
+  gap: 5px;
+}
+
+.page-loader strong {
+  font-size: 1rem;
+}
+
+.page-loader span {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.loader-mark {
+  width: 42px;
+  height: 42px;
+  border: 4px solid rgba(31, 122, 111, 0.16);
+  border-top-color: var(--brand);
+  border-radius: 999px;
+  animation: loader-spin 800ms linear infinite;
+}
+
+@keyframes loader-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .topbar {
   display: flex;
   align-items: center;

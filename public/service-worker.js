@@ -1,4 +1,4 @@
-const CACHE_NAME = "couple-reminder-v1";
+const CACHE_NAME = "couple-reminder-v2";
 const SEEN_PUSH_CACHE = "couple-reminder-seen-push-v1";
 const APP_SHELL = [
   "/",

@@ -18,6 +18,10 @@ const people = {
   settingsPartner: $("#settingsPartnerInput")
 };
 
+function setPageLoading(isLoading) {
+  $("#pageLoader")?.classList.toggle("hidden", !isLoading);
+}
+
 function getDeviceId() {
   let deviceId = localStorage.getItem(deviceKey);
   if (!deviceId) {
@@ -487,9 +491,21 @@ document.querySelectorAll(".tab").forEach((tab) => {
   });
 });
 
-await registerPwa();
-await bootstrap();
-updateNotifyButton();
-await pollEvents();
-setInterval(refreshTasks, 15000);
-setInterval(pollEvents, 10000);
+async function init() {
+  try {
+    setPageLoading(true);
+    await registerPwa();
+    await bootstrap();
+    updateNotifyButton();
+    await pollEvents();
+  } catch (error) {
+    showToast("加载失败", error.message || "请刷新页面重试。", "error");
+  } finally {
+    setPageLoading(false);
+  }
+
+  setInterval(refreshTasks, 15000);
+  setInterval(pollEvents, 10000);
+}
+
+await init();
